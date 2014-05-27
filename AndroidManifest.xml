@@ -24,13 +24,20 @@
             android:windowSoftInputMode="adjustResize|stateVisible" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
             android:name="com.example.smarthome.MachineActivity"
             android:label="@string/title_activity_machine" >
+        </activity>
+        <activity
+            android:name="com.example.smarthome.TaskActivity"
+            android:label="@string/title_activity_task" >
+        </activity>
+        <activity
+            android:name="com.example.smarthome.AddTaskActivity"
+            android:label="@string/title_activity_add_task" >
         </activity>
     </application>
 

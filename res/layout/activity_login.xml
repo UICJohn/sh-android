@@ -27,6 +27,12 @@
             android:fontFamily="sans-serif-light"
             android:text="@string/login_progress_signing_in"
             android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <ImageView
+            android:id="@+id/min"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/min" />
     </LinearLayout>
 
     <!-- Login form -->

@@ -4,24 +4,27 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -68,10 +71,12 @@ public class LoginActivity extends Activity {
 	private View mLoginStatusView;
 	private TextView mLoginStatusMessageView;
 
-	String IP_Server = "http://10.0.2.2";// IP DE NUESTRO PC
-	String URL_connect = IP_Server + "/smarthome/account/login"; // ruta en donde estan
-															// nuestros archivos
-	Httppostaux post;
+	public static String ci_session = null;
+
+	public static final String IP_Server = "http://192.168.16.209";// IP DE NUESTRO PC
+	String URL_connect = IP_Server + "/smarthome/account/login"; // ruta en
+																	// donde
+																	// estan
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -239,45 +244,83 @@ public class LoginActivity extends Activity {
 					return pieces[1].equals(mPassword);
 				}
 			}
-			
-		    String uriAPI = URL_connect;
-		    /*建立HTTP Post连线*/
-		    HttpPost httpRequest =new HttpPost(uriAPI);
-		    //Post运作传送变数必须用NameValuePair[]阵列储存
-		    //传参数 服务端获取的方法为request.getParameter("name")
-		    List <NameValuePair> parameters=new ArrayList<NameValuePair>();
-		    parameters.add(new BasicNameValuePair("email",mEmail));
-		    parameters.add(new BasicNameValuePair("email",mPassword));
-		    try{
-		     
-		     
-		     //发出HTTP request
-		     httpRequest.setEntity(new UrlEncodedFormEntity(parameters,HTTP.UTF_8));
-		     //取得HTTP response
-		     HttpResponse httpResponse=new DefaultHttpClient().execute(httpRequest);
-		     
-		     //若状态码为200 ok 
-		     if(httpResponse.getStatusLine().getStatusCode()==200){
-		      //取出回应字串
-		      String strResult=EntityUtils.toString(httpResponse.getEntity());
-		      System.out.println("Result: "+strResult);
-		     }else{
-		    	 System.out.println("Response Error");
-		     }
-		    }catch(ClientProtocolException e){
-		    	System.out.println(e.getMessage().toString());
-		     e.printStackTrace();
-		    } catch (UnsupportedEncodingException e) {
-		    	System.out.println(e.getMessage().toString());
-		     e.printStackTrace();
-		    } catch (IOException e) {
-		    	Log.e(ACTIVITY_SERVICE, e.getMessage().toString());
-		     e.printStackTrace();
-		    }
+
+			executeRequest();
 			// TODO: register the new account here.
 			return true;
 		}
 
+		@SuppressLint("NewApi")
+		protected void executeRequest() {
+			DefaultHttpClient httpClient;
+			String uriAPI = URL_connect;
+			JSONArray jdata;
+			/* 建立HTTP Post连线 */
+			HttpPost httpRequest = new HttpPost(uriAPI);
+			// Post运作传送变数必须用NameValuePair[]阵列储存
+			// 传参数 服务端获取的方法为request.getParameter("name")
+			List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+			parameters.add(new BasicNameValuePair("email", mEmail));
+			parameters.add(new BasicNameValuePair("password", mPassword));
+			parameters.add(new BasicNameValuePair("type", "phone"));
+			try {
+				// HttpConnectionParams.setConnectionTimeout(httpRequest, 3000);
+				// 发出HTTP request
+				httpRequest.setEntity(new UrlEncodedFormEntity(parameters,
+						HTTP.UTF_8));
+				if (ci_session != null) {
+					httpRequest.setHeader("Cookie", "ci_session=" + ci_session);
+				}
+				// 取得HTTP response
+				httpClient = new DefaultHttpClient();			
+				HttpResponse httpResponse = httpClient.execute(httpRequest);
+
+				// 若状态码为200 ok
+				if (httpResponse.getStatusLine().getStatusCode() == 200) {
+					// 取出回应字串
+					String strResult = EntityUtils.toString(httpResponse
+							.getEntity());
+					try {
+						jdata = new JSONArray(strResult); 
+						Log.i("HAHA", jdata.toString());
+					} catch (JSONException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					CookieStore mCookieStore = httpClient.getCookieStore();
+					List<Cookie> cookies = mCookieStore.getCookies();
+					for (int i = 0; i < cookies.size(); i++) {
+						// 这里是读取Cookie['PHPSESSID']的值存在静态变量中，保证每次都是同一个值
+						if ("ci_session".equals(cookies.get(i).getName())) {
+							ci_session = cookies.get(i).getValue();
+							break;
+						}
+
+					}
+
+					if (!strResult.equals("Failed")) {
+						Intent intent;
+						intent = new Intent().setClass(LoginActivity.this,
+								MachineActivity.class);
+						intent.putExtra("strmachines", strResult);
+						startActivity(intent);
+					}
+					
+				} else {
+					System.out.println("Response Error");
+				}
+			} catch (ClientProtocolException e) {
+				System.out.println(e.getMessage().toString());
+				e.printStackTrace();
+			} catch (UnsupportedEncodingException e) {
+				System.out.println(e.getMessage().toString());
+				e.printStackTrace();
+			} catch (IOException e) {
+				Log.e(ACTIVITY_SERVICE, e.getMessage().toString());
+				e.printStackTrace();
+			}
+		}
 
 		@Override
 		protected void onPostExecute(final Boolean success) {
